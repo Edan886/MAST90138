@@ -1,0 +1,320 @@
+---
+title: "Assignment3 MAST90138"
+author: "Muhan Guan 1407870"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Tutor's name: Shangyu Chen
+
+Time of Tutorial class: Thursday 10AM
+
+# Problem 1
+
+## (a)
+
+### (a1)
+
+All in all**, 134321** parameters need to be estimated for QD classifier, based on Bayes theorem and distributional assumption about $\textbf X$ it uses when calculating probability.
+
+Specifically, in QD ,when a new individual in test data with $\textbf X_i=(\textbf X_{i1},...,\textbf X_{ip})$ is more likely to be classified as group 1 than group 2 if below equation can be satisfied :
+
+$$
+-log(\hat{\pi}_1)+log\{det(\hat{\Sigma}_1)\}+(\textbf X_i-\hat{\mu}_1)^T\hat{\Sigma}_1^{-1}(\textbf X_i-\hat{\mu}_1)<-log(\hat{\pi}_2)+log\{det(\hat{\Sigma}_2)\}+(\textbf X_i-\hat{\mu}_2)^T\hat{\Sigma}_2^{-1}(\textbf X_i-\hat{\mu}_2)
+$$
+
+,where $i=1,2$
+
+$\hat{\pi}_i$: The prior probability of each of two groups.**One parameter** need to be estimated and then we calculate the prior probability for another group by $1-\hat{\pi}_i$
+
+$\hat{\Sigma}_i$ : Covariance matrix of the group $i$ . There are **133590 parameters** need to be estimated in total ,because each of two symmetric covariance matrices is $365\times365$ dimensions and has $\frac{365\times366}{2}=66795$ unique elements.
+
+$\hat{\mu}_i$: Mean vector of the group $i$. We need to estimate **730** parameters in all, and 365 empirical mean for each of two mean vectors.Number of Parameters in QD=1+133590+730=134321
+
+### (a2)
+
+There are **366** parameters need to be estimated for Logistic classifier,based on the formula of Logistic model:
+
+we classify new $\textbf X_i$ in group 1 if $\hat{\beta}_0+\hat{\beta}^T\textbf X_i>\frac{1}{2}$ ,where the number of parameters in the $\hat{\beta}$ vector is 365 ,because there would be one parameter for each of the 365 variables in $\textbf X$ ,and we also need to estimate the $\hat{\beta}_0$ ,hence the number of parameters to be estimated in Logistic classifier is $365+1=366$.
+
+## (b)
+
+### (b1)
+
+```{r}
+#load package and dataset
+library(MASS)
+XGtrain<- read.table("/Users/guanmuhan/Downloads/XGtrainRain (1).txt", header = TRUE, sep = ",")
+XGtrain$G = as.factor(XGtrain$G)
+XGtest <- read.table("/Users/guanmuhan/Downloads/XGtestRain (1).txt", header = TRUE, sep = ",")
+XGtest$G = as.factor(XGtest$G)
+```
+
+```{r }
+#mod_qda0 = qda(G ~ ., data = XGtrain)
+
+# Use tryCatch() to capture errors
+tryCatch({
+  mod_qda0 = qda(G ~ ., data = XGtrain)
+}, error = function(e) {
+  # Print the error message
+  cat("Error in qda.default():\n")
+  cat(conditionMessage(e), "\n")
+})
+
+```
+
+When I run the QD classifier model, there is an error message that some group is too small for 'qda' and I fail to run this model, which is because the number of observations is much smaller than that of variables,hence the estimation of covariance matrices would become unreliable and incorrect.
+
+### (b2)
+
+```{r}
+# Fit a logistic regression model from training data
+mod_lr0 = glm(G ~ .,
+              data = XGtrain, 
+              family = binomial(link="logit"),
+              control = glm.control(maxit = 100))
+```
+
+```{r}
+summary(mod_lr0$coefficients)
+```
+
+We can notice that there are 216 coefficients are not available.Similarly,the issue arises due to the fact that the number of variables significantly exceeds the number of observations,hence most of the parameters cannot be estimated.
+
+# Problem2
+
+## (a)
+
+```{r}
+Gtrain = XGtrain[, 366]
+#scaling the data when using PCA
+PCX = prcomp(XGtrain[, -c(366)], retx = T,center = TRUE, scale. = F)
+# Train logistic classifier using first q PCA components 
+CV_error = rep(0, 30)
+for (q in 1:30) {
+  prediction = c()
+  for (i in 1:dim(XGtrain)[1]) {
+    GDATACV = Gtrain[-i]
+    
+    logistic = suppressWarnings(glm(GDATACV~., 
+                                     data = as.data.frame(PCX$x[-i, 1:q]), 
+                                     family = binomial(link = "logit")))
+    #amend the type of data
+    new_data = as.data.frame(t(PCX$x[i, 1:q]))
+    #make sure the column names of test data are the same with that of the train data
+    colnames(new_data) = colnames(as.data.frame(PCX$x[-i, 1:q]))
+    prediction[i] = ifelse(predict(logistic, newdata = new_data,type='response') > 0.5, 1, 0)
+  }
+  CV_error[q] = sum(prediction != Gtrain)/dim(XGtrain)[1]
+}
+
+# Plotting the CV error
+library(ggplot2)
+plot_data = data.frame(q = 1:30, CV_error = CV_error)
+ggplot(data = plot_data, aes(x = q, y = CV_error)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "First q PCs", y = "CV Error", title = "Logistic(PCA) CV Error")
+
+```
+
+```{r}
+CV_error# all cv error 
+#the optimal q
+which(CV_error == min(CV_error))
+#the cv_error of optimal q
+min(CV_error)
+```
+
+We can observe that the cross-validation prediction error is minimized when q equals 3, 6, or 7. This means that logistic classifiers using the first 3, 6, or 7 principal components perform best on the training dataset.
+
+## (b)
+
+```{r warning=FALSE}
+#based on our conclusion,we fit a model with first three(the smallest q) PCs.
+logistic_PCA = glm(Gtrain~., data = as.data.frame(PCX$x[, 1:4]), 
+                    family = binomial(link = "logit"))
+summary(logistic_PCA)
+#make sure the test data use the same mean  with that of train data when apply PCA
+train_mean = colMeans(XGtrain[, -c(366)])
+X_test = scale(XGtest[, -c(366)], center = train_mean, scale = F)
+X_test_pca = predict(PCX, newdata =X_test)
+PCA_newdata = as.data.frame(X_test_pca[, 1:4])
+#predict the label
+prediction = ifelse(predict(logistic_PCA, newdata = PCA_newdata,
+                             family = binomial(link = "logit"),type = 'response') > 0.5, 1, 0)
+#predict the error 
+LR_PCA_ERROR <- sum(prediction != XGtest[,366])
+cat('prediction error for logistic classifier with q=4:',LR_PCA_ERROR,'\n')
+```
+
+# Problem3
+
+## (a)
+
+```{r}
+library(randomForest)
+#set seed to reproduce the same result
+c <- sqrt(365)
+#set the grid of m
+m_candidates <- round(c * c(1/4, 1/2, 1, 2, 3, 4, 5, 6, 7, 8))
+oob_errors <- numeric(length(m_candidates))
+set.seed(90139)
+for (i in 1:length(m_candidates)) {
+  m <- floor(m_candidates[i])
+  # Train the random forest model with B = 5000 trees and the current m value
+  model <- randomForest(formula=G~., data=XGtrain, ntree = 5000, mtry = m,importance=TRUE)
+  # store the OOB error rate for each of the final ten models
+  oob_errors[i] <- model$err.rate[nrow(model$err.rate), "OOB"]
+}
+#visualize the error rate by bar chart
+ooberror <- data.frame(m = m_candidates, OOB_Error = oob_errors)
+ggplot(data = ooberror, aes(x = factor(m), y = OOB_Error)) +
+  geom_bar(stat = "identity", fill = "blue") +  
+  labs(x = "Number of Random Candidate Variables (m)", y = "OOB Error Rate") +  
+  scale_x_discrete(labels = ooberror$m) +  
+  theme_minimal()  
+#extract the smallest m
+best_m <- m_candidates[which.min(oob_errors)]
+best_oob_error <- min(oob_errors)
+cat('the smallest value of m is :',best_m,'\n')
+cat('the OOB classification error for the model with best_m is :',best_oob_error,'\n')
+```
+
+## (b)
+
+#### Plot for Gini importance
+
+```{r}
+#load the best model
+best_model <- randomForest(formula=G~., data=XGtrain, ntree = 5000, mtry =  38  ,importance=TRUE)
+summary(best_model)
+```
+
+```{r}
+# Create a data frame containing variable index j and corresponding Gini importance value
+importance_values <- best_model$importance
+data_df <- data.frame(j = 1:365, GiniImportance = importance_values[1:365, 1])
+
+# Set the step size to control the display density
+step <- 15
+
+#Use ggplot2 to create a histogram that displays a label every step j value
+ggplot(data = data_df, aes(x = factor(j), y = GiniImportance)) +
+  geom_bar(stat = "identity", fill = "blue") + 
+  labs(x = "Variable Index (j)", y = "Gini Importance") +  
+  scale_x_discrete(breaks = data_df$j[seq(1, nrow(data_df), by = step)], labels = data_df$j[seq(1, nrow(data_df), by = step)]) +
+  theme_minimal() 
+
+```
+
+```{r}
+#visualization the top thirty most important features
+varImpPlot(best_model, cex = 0.7, main = "importance of random forest with m=38 ")
+```
+
+The dataset contains variables representing daily rainfall statistics for each year. The Gini importance scores reveal that majority of the top 30 important features are related to rainfall statistics during the summer season. This suggests that there is a significant difference in rainfall between the northern and southern regions of Australia during the summer months. This difference is valuable for our classifier to identify the geographical location of weather stations.(North or South)
+
+#### Prediction on test data
+
+```{r}
+# use the model to do prediction
+predictions <- predict(best_model, newdata = XGtest,response = "G")
+#calculate the number of error
+error_count <- sum(predictions != XGtest$G)
+cat("Number of prediction errors:", error_count, "\n")
+
+```
+
+## (c)
+
+```{r}
+#loading packages
+library(rpart)
+library(rpart.plot)
+library(pls)
+# Create a decision tree model
+XGtrain<- read.table("/Users/guanmuhan/Downloads/XGtrainRain (1).txt", header = TRUE, sep = ",")
+#center the data when using pls
+train_mean = colMeans(XGtrain[, -c(366)])
+XGtrain[, -c(366)]=scale(XGtrain[, -c(366)], center = train_mean,scale = FALSE)
+# PLS using centered data
+PLS <- plsr(G ~ ., data = XGtrain, scale = FALSE)
+X_PLS_df = as.data.frame(PLS$scores[,1:50])
+XGtrain$G=as.factor(XGtrain$G)
+#train a tree model
+tree = rpart(XGtrain$G~., data=X_PLS_df,method='class')
+#plot
+rpart.plot(tree, clip.right.labs = T,type=4,under=T)
+
+```
+
+```{r}
+summary(tree)
+```
+
+**Which PLS components play a role in the tree?**
+
+The plot generated by the `rpart.plot` function shows that PLS components *Comp 1 and Comp 2* play crucial roles in the splits at certain nodes. In the `summary` command, we observe that the variable importance rankings are as follows: *Comp 1, Comp 3, Comp 6, Comp 5, Comp 14, Comp 7, Comp 2, Comp 10, Comp 11, Comp 13, and Comp 8.*
+
+#### Plot the correlation of PLS component i with top j variables with highest Gini importance score
+
+```{r}
+plot_correlation_with_gini_dataframe <- function(i, j) {
+  # 获取 Gini Importance 最高的 j 个变量名
+  top_j_importance <- head(sort(best_model$importance[, "MeanDecreaseGini"], decreasing = TRUE), j)
+  top_j_variables <- names(top_j_importance)
+  data=as.data.frame(cor(XGtrain[, -ncol(XGtrain)],X_PLS_df[, paste0("Comp ", i)]))
+  data$x=colnames(XGtrain[, -ncol(XGtrain)])
+  data$top_j_variables=ifelse(data$x %in% top_j_variables, "red", "green")
+
+  # 绘制散点图
+  plot(data$V1, pch = 19, 
+       col = data$top_j_variables, 
+       main = paste("Corr of PLS Comp", i, "with each of the variables"),
+       xlab = "Variables", ylab = "Correlation", 
+       xaxt = "n", cex = 0.6)
+  grid(col = "gray", lty = "dotted")
+  # 添加 x 轴的标签
+  axis(1, at = seq(1, nrow(df), by = 20), 
+       labels = df$x[seq(1, nrow(df), by = 20)], 
+       cex.axis = 0.7, las = 2)
+
+  # 添加图例
+  legend("topright", legend = c("Top Gini", "Others"), 
+         pch = 19, col = c("red", "green"), cex = 0.8)
+
+  
+}
+
+plot_correlation_with_gini_dataframe(1, 50)
+plot_correlation_with_gini_dataframe(2, 50)
+plot_correlation_with_gini_dataframe(3, 50)
+plot_correlation_with_gini_dataframe(4, 50)
+plot_correlation_with_gini_dataframe(5, 50)
+plot_correlation_with_gini_dataframe(6, 50)
+```
+
+#### Correlation Analysis
+
+#### Prediction on test data
+
+```{r}
+#transform the test data by the same mean and variance with that of the trained data before PLS
+X_test = scale(XGtest[, -c(366)], center = train_mean, scale = F)
+#apply the same PLS transformation on the test data 
+X_test_pls=X_test%*%PLS$projection
+#dim(X_test_pls)
+predictions <- predict(tree, newdata = as.data.frame(X_test_pls[,1:50]),type = 'class')
+error_count <- sum(predictions != XGtest$G)
+cat("Number of prediction errors:", error_count, "\n")
+
+```

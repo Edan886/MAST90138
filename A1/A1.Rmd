@@ -1,0 +1,354 @@
+---
+title: "Assignment1 MAST90138"
+author: "Muhan Guan(1407870)"
+date: "11th 09 2023"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Tutor's name:Shangyu Chen
+
+#### Time of Tutorial class: Thursday 10AM
+
+## Problem 1
+
+## (a)
+
+By definition, the covariance matrix $\Sigma$ should be **1)** symmetric and **2)** positive semi-definite matrix.
+
+Therefore, for **1)**
+
+$$
+\Sigma_{12}=\Sigma_{21}\  
+$$
+
+then a=3.
+
+For **2)** we have
+
+$$
+X^T\Sigma X\ge0 \ for \ \ all\ non-zero\ X
+$$
+
+$$
+\begin{bmatrix}
+x_1 & x_2 \\
+\end{bmatrix}
+\begin{bmatrix}
+1 & 3 \\
+3 & b
+\end{bmatrix}
+\begin{bmatrix}
+x_1  \\
+x_2 
+\end{bmatrix}\ \ge0 \
+$$
+
+$$
+\begin{bmatrix}
+x_1+3x_2 & 3x_1+bx_2 \\
+\end{bmatrix}
+\begin{bmatrix}
+x_1 \\
+x_2 
+\end{bmatrix}\ge0\
+$$
+
+$$
+x_1(x_1+3x_2)+x_2(3x_1+bx_2)\ge0
+$$
+
+$$
+x_1^2+6x_1x_2+bx_2^2\ge0
+$$
+
+To make this inequality hold, we have $6^2-4b \le0$, hence $b\ge9$
+
+In conclusion, $a=3$ and $b \ge 9$
+
+![]()
+
+## (b)
+
+We have formula $\Sigma V=\lambda V$, then
+
+$$
+(\Sigma -I\lambda )V=0
+$$
+
+$$
+det(\begin{bmatrix}
+4-\lambda & \ -\sqrt3 \\
+-\sqrt3 & 2-\lambda
+\end{bmatrix})=0
+$$
+
+$$
+(4-\lambda)(2-\lambda)-3=0
+$$
+
+$$
+5-6\lambda+\lambda^2=0
+$$
+
+$$
+solve\ it, \ \lambda_1=1, \lambda_2=5
+$$
+
+$$
+\begin{bmatrix}
+4\ & \ -\sqrt3 \\
+-\sqrt3 & 2
+\end{bmatrix}
+\begin{bmatrix}
+v_{11}  \\
+v_{12} 
+\end{bmatrix}=
+\begin{bmatrix}
+v_{11} \\
+v_{12} 
+\end{bmatrix}
+$$
+
+$$
+\begin{bmatrix}
+4v_{11}-\sqrt3v_{12}  \\
+-\sqrt3v_{11}+2v_{12}
+\end{bmatrix}=
+\begin{bmatrix}
+v_{11} \\
+v_{12}
+\end{bmatrix}
+$$
+
+$$
+solve \ it ,v_{11}=\frac{\sqrt3}{3}\ v_{12}
+$$
+
+$$
+let \ v_{12}=a\ then \ a^2+ \frac{1}{3}a^2=1 , \ a=\frac{\sqrt3}{2} or-\frac{\sqrt3}{2}
+$$
+
+$$
+\begin{bmatrix}
+v_{11}  \\
+v_{12} 
+\end{bmatrix}=\begin{bmatrix}
+\frac{1}{2}  \\
+\frac{\sqrt3}{2} 
+\end{bmatrix}
+$$
+
+$$
+\begin{bmatrix}
+4\ & \ -\sqrt3 \\
+-\sqrt3 & 2
+\end{bmatrix}
+\begin{bmatrix}
+v_{21}  \\
+v_{22} 
+\end{bmatrix}=5
+\begin{bmatrix}
+v_{21} \\
+v_{22} 
+\end{bmatrix}
+$$
+
+$$
+\begin{bmatrix}
+4v_{21}\  -\sqrt3v_{22} \\
+-\sqrt3_{21} + 2v_{22}
+\end{bmatrix}
+=
+\begin{bmatrix}
+5v_{21} \\
+5v_{22} 
+\end{bmatrix}
+$$
+
+$$
+solve \ it,v_{21}=-\sqrt3v_{22}
+$$
+
+$$
+let\ v_{22}=a\ then \ a^2+3a^2=1,\ a=\frac{1}{2}or-\frac{1}{2}
+$$
+
+$$
+\begin{bmatrix}
+v_{21}  \\
+v_{22} 
+\end{bmatrix}=\begin{bmatrix}
+-\frac{\sqrt3}{2}  \\
+\frac{1}{2} 
+\end{bmatrix}
+$$
+
+then we have orthogonal matrix $\Gamma=\begin{bmatrix} \frac{1}{2}&-\frac{\sqrt3}{2} \\ \frac{\sqrt3}{2 }&\frac{1}{2} \end{bmatrix}$and diagonal matrix $\Lambda=\begin{bmatrix} \ 1&0 \\ \ 0 &\ 5 \end{bmatrix}$ ,which can make $\Sigma=\Gamma\Lambda\Gamma^T$
+
+To check if the equation can hold or not:
+
+```{r echo=TRUE}
+
+gamma=matrix(c(1/2,sqrt(3)/2,-sqrt(3)/2,1/2 ),2,2)
+lambda=matrix(c(1,0,0,5),2,2)
+gamma%*%lambda%*%t(gamma)
+#the sigma is same with the matrix in the question
+```
+
+## (c)
+
+```{r echo=TRUE}
+data=read.table(file='/Users/guanmuhan/Downloads/Wheat (1).txt')#read data
+X=as.matrix(data[,1:7]) #Take the first 7 features and convert them into matrix form
+cat("dimension of X:", dim(X), "\n")
+variety=as.vector(data[,8])#Take out the variety features and convert them into vectors
+cat("wheat variety :", variety, "\n")
+#length
+n=length(variety)
+
+```
+
+## (d)
+
+```{r echo=TRUE}
+S=cov(X)#covariance matrix
+S
+eigen_set=eigen(S)
+e_val=eigen_set$values#eigenvalue
+e_val_matrix=diag(e_val)
+e_vec=eigen_set$vectors#eigenvector
+
+S1=e_vec%*%e_val_matrix%*%t(e_vec)
+
+
+library(MASS)
+#Output the result of the difference between the two matrices in the form of a fraction.
+fractions(S1)-fractions(S)
+
+```
+
+we can see the result is 0, so the covariance matrix S of $X=\Gamma\Lambda\Gamma^T.$
+
+# Problem2
+
+## (a)
+
+1.X8 can not be included because PCA can only be used for numerical variables and cannot be applied to categorical variables, X8 is categorical variable.
+
+2.$$
+\psi_1=0.718743 \\ \psi_2=0.8898249 \\ \psi_3=0.9866825 \\ \psi_4=0.9964488 \\ \psi_5=0.9991222 \\ \psi_6=0.9998839 \\ \psi_7=1 
+$$
+
+3.Through the screen plot, we recommend keeping the first three principal components, because they explain most of the variation in the data set, explaining a roughly total of 98.7% of the data, which is already reasonable.
+
+```{r echo=TRUE}
+diag(diag(cov(X)))
+#we can observe that the variance of the area is much larger than that of the other variables,so we need to do PCA of scaled variables,hence we set the parameter 'scale' as True.
+#PCA
+PCX=prcomp(X,retx = T,scale. = T)
+#eigenvalue
+Lambda=PCX$sdev^2
+#eigenvector
+Gamma=PCX$rotation
+PCX_summary = summary(PCX)
+# The percentage of variability explained by each principal component by checing the information in  "Proportion of Variance" 
+cat("The precentage of the variability explained by each PC:" , "\n")
+PCX_summary$importance["Proportion of Variance", ]
+screeplot(PCX,type='lines')
+#cumulative percentage
+cat("Cumulative percentage of variance :" ,cumsum(Lambda)/sum(Lambda), "\n")
+
+
+
+
+
+```
+
+## (b)
+
+PC1 puts weights on-0.4444735, -0.4415715, -0.2770174, -0.4235633, -0.4328187, 0.1186925 , -0.3871608 on, respectively,the area, the perimeter, the compactness, the length of kernel, the width of kernel, the asymmetry coefficient and the length of kernel groove.PC1 puts the most weight on the area ,the perimeter ,the length of kernel and the width of kernel and also some weight on the length of kernel groove,all of which contribute negatively to PC1.
+
+$PC1=-0.4444735*area-0.4415715*perimeter-0.2770174*compactness-0.4235633*length \ of \ kernel-0.4328187*width\ of \ kernel+0.1186925*asymmetry \ coefficient-0.3871608*length\ of\ kernel\ groove$
+
+PC2 puts weights on 0.02656355, 0.08400282, -0.52915125, 0.20597518, -0.11668963, 0.71688203, 0.37719327 on, respectively,the area, the perimeter, the compactness, the length of kernel, the width of kernel, the asymmetry coefficient and the length of kernel groove.PC2 puts the most weight on the asymmetry coefficient and also put some weight on the compactness and the length of kernel groove.
+
+$PC2=0.02656355*area+0.08400282*perimeter-0.52915125*compactness+0.20597518*length \ of \ kernel-0.11668963*width\ of \ kernel+0.71688203*asymmetry \ coefficient+0.37719327*length\ of\ kernel\ groove$
+
+**Do the coefficients of these linear combinations depend on the wheat kernel?**
+
+No, the coefficients of these linear combinations are not dependent on individual wheat kernels. These coefficients are derived from the entirety of the dataset and define the direction of the principal components in the original feature space. They remain consistent and are not influenced by individual observations or specific indices of the wheat kernels.
+
+**Do the principal components depend on the wheat kernel?**
+
+Yes, the principal components are indeed dependent on individual wheat kernels. The principal components represent the projection of each wheat kernel onto the directions delineated by the coefficients of these linear combinations. As such, each wheat kernel will have its unique set of scores for the principal components, indicating its position in the transformed coordinate system defined by these components.
+
+```{r echo=TRUE}
+Gamma
+```
+
+## (c)
+
+**1.What you can extract from this graph?**
+
+The three types of wheat have generally obvious distribution differences in the two-dimensional space of PC1 and PC2, which means that PCA successfully distinguished the three types of wheat on these two principal components.The first type of wheat has a higher density in the negative area of PC1, but is more widely distributed on PC2.The second type of wheat is widely distributed on PC1, but mainly concentrated in the negative value area on PC2.The third type of wheat has a higher density in the positive area of PC1, but is more widely distributed on PC2.
+
+**2.Which groups are visible on the graph? What do they correspond to?**
+
+The varieties 1 and 3 is more clearly visible, while there is overlap between variety 2 and the other two varieties on the scatter plot.
+
+**3.How do the original variables contribute to those groups?**
+
+Variety 3 exhibits higher values on PC1, suggesting that, in comparison to Varieties 1 and 2, it tends to possess a smaller area, perimeter, length of kernel, and width of kernel. Conversely, Variety 1, with its generally lower PC1 values, indicates that it has larger measurements for these four variables relative to the other two varieties. Furthermore, compared with Variety 1, both Varieties 3 and 2 display larger values on PC2, pointing to a higher asymmetry coefficient and a lower compactness for these two varieties.
+
+```{r echo=TRUE}
+# loadingnecessary package
+library(ggplot2)
+
+# Combine principal component scores and wheat kernel categories into a new data frame
+pca_1st2nd_data=data.frame(PC1 = PCX$x[,1], PC2 =PCX$x[,2], Variety = data$V8)
+
+
+#use ggplot2 draw a scatterplot
+ggplot(pca_1st2nd_data, aes(x = PC1, y = PC2, color = as.factor(Variety))) +
+  geom_point(size = 3) +
+  scale_color_discrete(name = "Wheat Variety") +
+  labs(title = "Scatterplot of First Two Principal Components",
+       x = "PC1",
+       y = "PC2") +
+  theme_minimal() +
+  theme(legend.position = "right",
+            plot.title = element_text(hjust = 0.5))
+```
+
+## (d)
+
+We have $\rho_{{x_{ij}},{y_{ik}}}=\gamma_{kj}\frac{\lambda^\frac{1}{2}_{k}}{\sigma^\frac{1}{2}_{jj}}$
+
+**Conclusion:**
+
+**1. Interpretability:** The arrows for the variables 'area' and 'perimeter' are located on the periphery, indicating that these two variables are fully accounted for by PC1 and PC2. The variables 'length of kernel', 'width of kernel', and 'length of kernel groove' are also proximate to the periphery, suggesting that the first two principal components capture most of their variation. However, the arrows for 'compactness' and 'asymmetry coefficient' are notably distant from the periphery, implying that the initial two principal components do not entirely encapsulate the variance of these two variables, necessitating further information.
+
+**2. Correlation:**The variables 'area', 'perimeter', 'length of kernel', 'width of kernel', and 'length of kernel groove' have a minimal angle with PC1 and are oriented in the opposite direction, indicating a strong negative correlation with PC1. Their angle with PC2 is substantial, nearing 90 degrees, suggesting a minor positive correlation with PC2.The 'asymmetry coefficient' has a pronounced angle with PC1, indicating a weaker correlation between them. Conversely, its angle with PC2 is smaller, hinting at a positive correlation with PC2. However, the strength of this correlation cannot be conclusively determined since its arrow is not on the periphery.The variable 'compactness' exhibits discernible angles with both PC1 and PC2. While the direction suggests a negative correlation with both principal components, it doesn't necessarily indicate a strong correlation.Additionally, by observing the direction of the variable arrows, we can infer that the variables 'area', 'perimeter', 'length of kernel', 'width of kernel', and 'length of kernel groove' exhibit positive correlations with each other. Among these, the correlation between 'area' and 'perimeter' appears to be more pronounced, suggesting a higher correlation coefficient.
+
+```{r echo=TRUE, fig.width=5, fig.height=5}
+#calculte by formula
+corr=(Gamma%*%sqrt(diag(Lambda)))%*%solve(sqrt(diag(diag(cov(scale(X))))))
+
+colnames(corr) =paste0("PC", 1:ncol(corr))
+rownames(corr) =gsub("V", "X", rownames(corr))
+#rename the names of columns and rows respectively
+print(corr)
+plot(0, 0, xlim = c(-1, 1), ylim = c(-1, 1), type = "n", xlab = "PC1", ylab = "PC2", main = "Correlation Graph")
+radius = 1
+theta = seq(0, 2 * pi, length = 200)
+lines(x = radius * cos(theta), y = radius * sin(theta))
+result=apply(corr, 1, function(row) {arrows(0, 0, row[1], row[2], length = 0.1)})
+text(corr[,1], corr[,2], labels = rownames(corr), pos = 4)
+
+```

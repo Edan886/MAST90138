@@ -1,0 +1,261 @@
+---
+title: "Assignment2 MAST90138"
+author: "Muhan Guan 1407870"
+date: "`r Sys.Date()`"
+output: pdf_document
+latex_engine: lualatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Tutor's name:Shangyu Chen
+
+#### Time of Tutorial class: Thursday 10AM
+
+# Problem 1
+
+## (a)
+
+Because the property of matrix: $(-Q)^T=-(Q^T)$,
+
+Then we have $\Sigma=(-Q_1)(-Q_1)^T+\Psi=(-1)(-1)Q_1Q_1^T+\Psi=Q_1Q_1^T+\Psi$
+
+Therefore, if the equation is satisfied for $Q= Q_1$​, it is also satisfied for $Q= -Q_1$ with the same $\Psi$.
+
+## (b)
+
+### (i)
+
+G should also be orthogonal,hence $GG^T=1$. Additionally , if q=1,then the dimension of G is 1\*1,which means $G^2=1$.
+
+So the only two 1\*1 orthogonal matrices $G_1=[1],G_2=[-1]$
+
+### (ii)
+
+when $q=1, then \ G_1=1, G_2=-1$, let $Q_G=QG1,\ -Q_G=G_2Q$
+
+$$
+\Sigma=(Q_G)(Q_G)^T+\Psi=(QG_1)(QG_1)^T+\Psi=Q\times(1)\times(1)\times Q^T+\Psi =QQ^T+\Psi
+$$
+
+$$
+\Sigma=(-Q_G)(-Q_G)^T+\Psi=(G_2Q)(G_2Q)^T+\Psi=(-1)\times Q \times Q^T\times(-1)+\Psi =QQ^T+\Psi 
+$$
+
+So the equation in (a) still can be satisfied, when $q=1\ and \ Q_G=QG$
+
+## (c)
+
+If the below condition can be satisfied,
+
+$$
+p(p+1)/2>pq+p-q(q-1)/2 
+$$
+
+we can find the unique factor loadings and specific variance.
+
+When $p=3$ and $q=1$ : $p(p+1)/2=6,pq+p-q(q-1)/2=6$, then $6\geq6$ the condition is satisfied ,hence there is an unique solution.
+
+By equation(1) we have:
+
+$$
+\begin{bmatrix}
+4&-2&3\\
+-2&5&-1\\
+3&-1&6\\
+\end{bmatrix}
+=
+\begin{bmatrix}
+q_1\\
+q_2\\
+q_3\\
+\end{bmatrix}
+\begin{bmatrix}
+q_1&q_2&q_3\\
+\end{bmatrix}
++
+\begin{bmatrix}
+\psi_{11}&0&0\\
+0&\psi_{22}&0\\
+0&0&\psi_{33}
+\end{bmatrix}
+$$
+
+Then we can get the following six equations:
+
+$$
+q_1q_2=-2
+$$
+
+$$
+q_1q_3=3
+$$
+
+$$
+q_2q_3=-1
+$$
+
+$$
+q_1^2+\psi_{11}=4
+$$
+
+$$
+q_2^2+\psi_{22}=5
+$$
+
+$$
+q_3^2+\psi_{33}=6
+$$
+
+Solve them we can get :
+
+$Q_1= \begin{bmatrix} -\sqrt6\\ \sqrt\frac{2}{3}\\ -\sqrt\frac{3}{2}\\ \end{bmatrix},\ Q_2= \begin{bmatrix} \sqrt6\\ -\sqrt\frac{2}{3}\\ \sqrt\frac{3}{2}\\ \end{bmatrix}, \ \Psi=\begin{bmatrix} -2&0&0\\ 0&\frac{13}{3}&0\\ 0&0&\frac{9}{2}\\ \end{bmatrix}$
+
+This unique $\Psi$ is not interpretable. The $\Psi=Var(U)$ ,where $U$ is specific factors.The variance makes statistical sense if and only if all of its elements are positive,but here the $\psi_1$ is negative, hence the $\Psi$ is not interpretable .
+
+# Problem 2
+
+## (a)
+
+```{r echo=TRUE}
+library(mlbench)
+data(BostonHousing)
+summary(BostonHousing)
+#remove the binary variable
+BostonHousing <- subset(BostonHousing, select = -chas)
+
+```
+
+```{r echo=TRUE}
+# transform each variable according to the requirement.
+XBoston <- data.frame(
+  X1 = log(BostonHousing$crim),
+  X2 = BostonHousing$zn / 10,
+  X3 = log(BostonHousing$indus),
+  X5 = log(BostonHousing$nox),
+  X6 = log(BostonHousing$rm),
+  X7 = (BostonHousing$age^2.5) / 10000,
+  X8 = log(BostonHousing$dis),
+  X9 = log(BostonHousing$rad),
+  X10 = log(BostonHousing$tax),
+  X11 = exp(0.4 * BostonHousing$ptratio) / 1000,
+  X12 = BostonHousing$b / 100,
+  X13 = sqrt(BostonHousing$lstat),
+  X14 = log(BostonHousing$medv)
+)
+#  check the transformed data
+head(XBoston)
+dim(XBoston)
+```
+
+## (b)
+
+```{r echo=TRUE}
+# scale and cneter the data
+scaled_XBoston = scale(XBoston)
+
+# apply factor analysis
+fit_XBoston <- factanal(scaled_XBoston, factors = 3,rotation = "varimax")
+print(fit_XBoston)
+#check if the method used is MLE or not
+print(fit_XBoston$method)
+```
+
+## (c)
+
+```{r echo=TRUE}
+#loading matrix 
+Q=loadings(fit_XBoston)
+print(Q, digit=4)# loadings
+Psi=diag(fit_XBoston$uniquenesses)
+round(Psi, 4)#specific variance
+```
+
+## (d)
+
+Then Communality of $j$ th variable in the fitted model can be expressed as :
+
+Option1:
+
+$$
+\text{Communality} = \sum_{\ell=1}^{q} q^2_{Y,j\ell}
+$$
+
+Option2:
+
+$$
+\text{Communality}=var(Y_j)-\psi_{Y,j}=1-Uniqueness_i
+$$
+
+```{r}
+library(MASS)
+# option1:
+communality_1 = round(rowSums(Q^2),4)
+# option2:
+communality_2 = round((1 - fit_XBoston$uniquenesses), 4)
+# print
+cat("Communalities by option1:\n", communality_1, "\n")
+cat("Communalities by option2:\n", communality_2, "\n")
+
+difference=fractions(communality_1)-fractions(communality_2)#verify the consistency of results
+cat("Difference between two options:", difference, "\n")
+```
+
+## (e)
+
+Comparatively, there exists a distinction in the loadings of the two fitted models. Specifically, the signs of the loadings are inverted, and the order of the columns varies between the two models.
+
+However, no discrepancies are observed regarding the communalities and specific variances of these two fitted models.
+
+This underscores the notion that alterations in the sign of the loadings or permutations of the column order do not effect the interpretability of the model. This is because, for the loadings $Q_G = QG$, as long as $G$ satisfies the constraints $||G_j|| = 1$ and $G_j^TG_k = 0$ for $j \neq k$, the solution of the model still remains valid.
+
+# Problem 3
+
+## (a)
+
+```{r}
+
+data=read.table(file='/Users/guanmuhan/Downloads/WheatAssignment2 .txt')
+X=as.matrix(data[,1:7])
+# scale and cneter the data
+X=scale(X)
+# apply factor analysis
+fit_X <- factanal(X, factors = 3,rotation = "varimax")
+fit_X
+```
+
+## (b)
+
+The parameter `uniquenesses` in this output represents how many variance of each of seven scaled variables has not explained by three factors.
+
+```{r}
+cat('The percentage of variance of each variable explained by 3 factors:' ,"\n")
+round((1 - fit_X$uniquenesses) * 100, 4)
+```
+
+## (c)
+
+$$
+corr(X,F)=D^{-\frac{1}{2}}Q=corr(Y,F)=Q_Y
+$$
+
+Therefore,the correlation between each original variables $X_i$ and each factors $F_i$ can be calculated by the correlation between the scaled data and their factors.
+
+```{r}
+cat('The correlation between Factor1 and each of seven variables:' ,"\n")
+fit_X$loadings[,1]
+cat("\n")
+cat('The correlation between Factor2 and each of seven variables:' ,"\n")
+fit_X$loadings[,2]
+cat("\n")
+cat('The correlation between Factor3 and each of seven variables:' ,"\n")
+fit_X$loadings[,3]
+```
+
+`Factor1` is most correlated with **area** ,**perimeter** ,**length of kernel** and **length of kernel groove**,hence we can probably rename the Factor1 as **Size and Shape Factor.**
+
+`Factor2` is most correlated with **compactness. (Compactness Factor)**
+
+`Factor3` is most correlated with **asymmetry coefficient. (Asymmetry Factor)**
