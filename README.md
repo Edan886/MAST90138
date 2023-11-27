@@ -14,4 +14,4 @@ Important gather:
 2.Make sure the comments should be consistent with your code!!!
 
 
-Final Mark: A1:25/25, A2:22/22, A3:16/20
+Final Mark: 92/100
